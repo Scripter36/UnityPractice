@@ -1,6 +1,4 @@
 using System.Collections;
-using System.Collections.Generic;
-using System.Timers;
 using UnityEngine;
 
 public class DoorOpener : MonoBehaviour
@@ -8,16 +6,10 @@ public class DoorOpener : MonoBehaviour
     [SerializeField]
     private DoorController doorController;
     [SerializeField]
-    private float closeTime = 3000f;
-
-    private Timer timer = new Timer();
+    private float closeTime = 3f;
     // Start is called before the first frame update
     void Start()
     {
-        timer.Elapsed += (sender, e) => {
-            doorController.closeDoor();
-        };
-        timer.AutoReset = false;
     }
 
     // Update is called once per frame
@@ -28,15 +20,20 @@ public class DoorOpener : MonoBehaviour
 
     void OnTriggerEnter(Collider other) {
         if (other.gameObject.CompareTag("Player")) {
-            timer.Stop();
-            doorController.openDoor();
+            StopAllCoroutines();
+            doorController.OpenDoor();
         }
     }
 
     void OnTriggerExit(Collider other) {
         if (other.gameObject.CompareTag("Player")) {
-            timer.Interval = closeTime;
-            timer.Start();
+            StopAllCoroutines();
+            StartCoroutine(CloseDoor());
         }
+    }
+
+    IEnumerator CloseDoor() {
+        yield return new WaitForSeconds(closeTime);
+        doorController.CloseDoor();
     }
 }

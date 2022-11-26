@@ -6,40 +6,69 @@ public class DoorController : MonoBehaviour
 {
     // Start is called before the first frame update
     [SerializeField]
-    private Transform LeftDoor;
+    private Rigidbody LeftDoorHinge;
     [SerializeField]
-    private Transform RightDoor;
+    private Rigidbody RightDoorHinge;
     [SerializeField]
-    private float speed = 1f;
-    [SerializeField]
-    private float distance = 1f;
+    private float openTime = 1f;
+    private float openAngle = 90f;
 
-    private Vector3 leftClosedPosition;
-    private Vector3 rightClosedPosition;
-
-    private bool isOpen = false;
+    private Vector3 leftClosedRotation;
+    private Vector3 rightClosedRotation;
+    private Vector3 leftOpenedRotation;
+    private Vector3 rightOpenedRotation;
     private float status = 0; // 0: completely closed, 1: completely open
+
+    private bool nextOpen = true;
     void Start()
     {
-        leftClosedPosition = LeftDoor.localPosition;
-        rightClosedPosition = RightDoor.localPosition;
+        leftClosedRotation = LeftDoorHinge.rotation.eulerAngles;
+        rightClosedRotation = LeftDoorHinge.rotation.eulerAngles;
+
+        leftOpenedRotation = LeftDoorHinge.rotation.eulerAngles + new Vector3(0f, openAngle, 0f);
+        rightOpenedRotation = RightDoorHinge.rotation.eulerAngles + new Vector3(0f, -openAngle, 0f);
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (isOpen && !Mathf.Approximately(status, 1f)) {
-            status = Mathf.Clamp01(status + speed * Time.deltaTime);
-            LeftDoor.localPosition = new Vector3(-status * distance, 0f, 0f) + leftClosedPosition;
-            RightDoor.localPosition = new Vector3(status * distance, 0f, 0f) + rightClosedPosition;
-        } else if (!isOpen && !Mathf.Approximately(status, 0f)) {
-            status = Mathf.Clamp01(status - speed * Time.deltaTime);
-            LeftDoor.localPosition = new Vector3(-status * distance, 0f, 0f) + leftClosedPosition;
-            RightDoor.localPosition = new Vector3(status * distance, 0f, 0f) + rightClosedPosition;
+        if (Input.GetKeyDown(KeyCode.E)) {
+            if (nextOpen) OpenDoor();
+            else CloseDoor();
+            nextOpen = !nextOpen;
         }
     }
 
-    public void openDoor() { isOpen = true; }
+    private void updateDoorAngle() {
+        LeftDoorHinge.MoveRotation(Quaternion.Euler(Vector3.Slerp(leftClosedRotation, leftOpenedRotation, status)));
+        RightDoorHinge.MoveRotation(Quaternion.Euler(Vector3.Slerp(rightClosedRotation, rightOpenedRotation, status)));
+    }
 
-    public void closeDoor() { isOpen = false; }
+    private IEnumerator OpenDoorCoroutine() {
+        while (status < 1) {
+            updateDoorAngle();
+            status = Mathf.Clamp01(status + Time.deltaTime / openTime);
+            yield return null;
+        }
+        updateDoorAngle();
+    }
+
+    private IEnumerator CloseDoorCoroutine() {
+        while (status > 0) {
+            updateDoorAngle();
+            status = Mathf.Clamp01(status - Time.deltaTime / openTime);
+            yield return null;
+        }
+        updateDoorAngle();
+    }
+
+    public void OpenDoor() {
+        StopAllCoroutines();
+        StartCoroutine(OpenDoorCoroutine());
+    }
+
+    public void CloseDoor() {
+        StopAllCoroutines();
+        StartCoroutine(CloseDoorCoroutine());
+    }
 }

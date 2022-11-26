@@ -19,6 +19,7 @@ public class PlayerController : MonoBehaviour
 
     private float yaw = 0f;
     private float pitch = 0f;
+    private Vector3? lastStairPosition = null;
 
     void Start()
     {
@@ -54,11 +55,23 @@ public class PlayerController : MonoBehaviour
         cameraTransform.localPosition = new Vector3(0f, 0f, -cameraDistance);
         cameraHolderTransform.eulerAngles = new Vector3(pitch, yaw, 0f);
         playerRigidbody.transform.eulerAngles = new Vector3(0f, yaw, 0f);
-        Debug.Log("yaw: " + yaw + " pitch: " + pitch);
 
-        if (Physics.Raycast(playerRigidbody.transform.position, -Vector3.up, 1.1f) && Input.GetKeyDown(KeyCode.Space))
-        {
-            playerRigidbody.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+        RaycastHit hit;
+        if (Physics.Raycast(playerRigidbody.transform.position, Vector3.down, out hit, 1.1f)) {
+            if (Input.GetKeyDown(KeyCode.Space)) {
+                playerRigidbody.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+            }
+            if (hit.collider.gameObject.tag == "Stair") {
+                if (lastStairPosition != null) {
+                    Vector3 movement = hit.collider.gameObject.transform.position - (Vector3)lastStairPosition;
+                    if (movement.magnitude < 1f) {
+                        playerRigidbody.transform.Translate(movement, Space.World);
+                    }
+                }
+                lastStairPosition = hit.collider.gameObject.transform.position;
+            }
+        } else {
+            lastStairPosition = null;
         }
     }
 }
